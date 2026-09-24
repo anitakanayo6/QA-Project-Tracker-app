@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QA Project Tracker</title>
+<style>
+:root{
+  --accent:#1F4E5F; --accent2:#2E7D8C; --light:#EAF1F3; --bg:#fdfdfd; --text:#1a1a1a; --card:#ffffff; --border:#dde4e6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#111818; --text:#eee; --card:#182223; --border:#2a3536; --light:#1c2a2c; }
+}
+:root[data-theme="dark"]{ --bg:#111818; --text:#eee; --card:#182223; --border:#2a3536; --light:#1c2a2c; }
+*{box-sizing:border-box;}
+body{
+  margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+header{background:var(--accent); color:#fff; padding:16px 20px; padding-top:calc(16px + env(safe-area-inset-top,0px));}
+header h1{margin:0; font-size:1.3rem;}
+header p{margin:4px 0 0; font-size:.85rem; opacity:.85;}
+nav{display:flex; overflow-x:auto; background:var(--card); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:10;}
+nav button{
+  flex:0 0 auto; padding:12px 16px; background:none; border:none; font-size:.9rem; color:var(--text); cursor:pointer; border-bottom:3px solid transparent; white-space:nowrap;
+}
+nav button.active{border-bottom-color:var(--accent2); color:var(--accent2); font-weight:600;}
+main{padding:16px; max-width:900px; margin:0 auto;}
+.tab{display:none;}
+.tab.active{display:block;}
+.card{background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin-bottom:12px;}
+.kpi-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px;}
+.kpi-title{font-size:.8rem; opacity:.7; margin-bottom:6px;}
+.kpi-value{font-size:1.4rem; font-weight:700; color:var(--accent2);}
+.bar-bg{background:var(--light); border-radius:6px; height:8px; margin-top:8px; overflow:hidden;}
+.bar-fill{background:var(--accent2); height:100%;}
+table{width:100%; border-collapse:collapse; font-size:.85rem;}
+th,td{padding:8px; border-bottom:1px solid var(--border); text-align:left; vertical-align:top;}
+th{background:var(--light); font-size:.75rem; text-transform:uppercase; letter-spacing:.03em;}
+.sev-5,.sev-4{color:#b3261e; font-weight:600;}
+.sev-3{color:#a05a00; font-weight:600;}
+.sev-2,.sev-1{color:#2e7d32; font-weight:600;}
+.status-open{color:#b3261e;}
+.status-progress{color:#a05a00;}
+.status-closed{color:#2e7d32;}
+form{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;}
+input,select,textarea{
+  padding:8px; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text); font-size:.85rem; flex:1 1 140px;
+}
+button.primary{background:var(--accent2); color:#fff; border:none; padding:8px 14px; border-radius:6px; cursor:pointer; font-size:.85rem;}
+button.danger{background:none; border:1px solid var(--border); color:#b3261e; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:.75rem;}
+.checklist-item{display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);}
+.checklist-item:last-child{border-bottom:none;}
+.checklist-item input[type=checkbox]{margin-top:3px; width:18px; height:18px; flex:none;}
+.checklist-item.done label{text-decoration:line-through; opacity:.55;}
+h2.section-title{font-size:1.05rem; margin:4px 0 12px; color:var(--accent);}
+small.hint{opacity:.6; display:block; margin-top:-4px; margin-bottom:12px;}
+.pdca-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+@media (max-width:520px){ .pdca-grid{grid-template-columns:1fr;} }
+.pdca-box{border:1px solid var(--border); border-radius:8px; padding:10px;}
+.pdca-box h3{margin:0 0 6px; font-size:.85rem; color:var(--accent2);}
+.pdca-box textarea{width:100%; min-height:60px; resize:vertical;}
+footer{text-align:center; font-size:.75rem; opacity:.5; padding:20px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>QA Project Tracker</h1>
+  <p>TaskFlow Release Quality Improvement</p>
+</header>
+<nav id="nav"></nav>
+<main>
+
+  <section class="tab" id="tab-dashboard">
+    <h2 class="section-title">KPI Dashboard</h2>
+    <div class="kpi-grid" id="kpiGrid"></div>
+  </section>
+
+  <section class="tab" id="tab-defects">
+    <h2 class="section-title">Defect Log</h2>
+    <small class="hint">Log defects found during QC activities. Data is saved in this browser.</small>
+    <form id="defectForm">
+      <input type="text" id="dTitle" placeholder="Defect title" required style="flex:2 1 220px;">
+      <select id="dSeverity">
+        <option value="5">Sev 5 - Critical</option>
+        <option value="4">Sev 4 - High</option>
+        <option value="3" selected>Sev 3 - Medium</option>
+        <option value="2">Sev 2 - Low</option>
+        <option value="1">Sev 1 - Cosmetic</option>
+      </select>
+      <select id="dStatus">
+        <option value="open">Open</option>
+        <option value="progress">In Progress</option>
+        <option value="closed">Closed</option>
+      </select>
+      <button type="submit" class="primary">Add Defect</button>
+    </form>
+    <table>
+      <thead><tr><th>Title</th><th>Severity</th><th>Status</th><th></th></tr></thead>
+      <tbody id="defectRows"></tbody>
+    </table>
+  </section>
+
+  <section class="tab" id="tab-checklist">
+    <h2 class="section-title">QA Activity Checklist</h2>
+    <small class="hint">Preventive QA steps for the current sprint. Check off as completed.</small>
+    <div class="card" id="checklistBox"></div>
+  </section>
+
+  <section class="tab" id="tab-risk">
+    <h2 class="section-title">Risk Register (FMEA)</h2>
+    <table>
+      <thead><tr><th>Potential Failure</th><th>Effect</th><th>Sev.</th><th>Mitigation</th></tr></thead>
+      <tbody>
+        <tr><td>Ambiguous requirements</td><td>Wrong feature built, rework needed</td><td class="sev-4">4</td><td>Structured requirement reviews with sign-off</td></tr>
+        <tr><td>Skipped code review</td><td>Defects merged into main branch</td><td class="sev-5">5</td><td>Mandatory review checklist before merge</td></tr>
+        <tr><td>Low test coverage</td><td>Undetected regressions</td><td class="sev-5">5</td><td>Enforce minimum coverage threshold in CI</td></tr>
+        <tr><td>Environment mismatch</td><td>Failures only appear in production</td><td class="sev-4">4</td><td>Environmental testing before release</td></tr>
+        <tr><td>Late requirement change</td><td>Rushed, untested implementation</td><td class="sev-3">3</td><td>Change control with impact assessment</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="tab" id="tab-pdca">
+    <h2 class="section-title">PDCA Cycle — This Sprint</h2>
+    <div class="pdca-grid" id="pdcaGrid"></div>
+    <button class="primary" id="savePdca" style="margin-top:10px;">Save Notes</button>
+  </section>
+
+</main>
+<footer>Data stored locally in this browser only.</footer>
+
+<script>
+const KPI_KEY='qa_kpis', DEFECT_KEY='qa_defects', CHECK_KEY='qa_checklist', PDCA_KEY='qa_pdca';
+
+function load(key, fallback){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; }
+}
+function save(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+
+// ---- Nav ----
+const tabs = [
+  {id:'dashboard', label:'Dashboard'},
+  {id:'defects', label:'Defects'},
+  {id:'checklist', label:'Checklist'},
+  {id:'risk', label:'Risk Register'},
+  {id:'pdca', label:'PDCA'},
+];
+const nav = document.getElementById('nav');
+tabs.forEach((t,i)=>{
+  const btn = document.createElement('button');
+  btn.textContent = t.label;
+  btn.dataset.tab = t.id;
+  if(i===0) btn.classList.add('active');
+  btn.onclick = ()=>{
+    document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(s=>s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+t.id).classList.add('active');
+  };
+  nav.appendChild(btn);
+});
+document.getElementById('tab-'+tabs[0].id).classList.add('active');
+
+// ---- KPI Dashboard ----
+const defaultKpis = [
+  {name:'Defect Density', baseline:5, target:2, current:5, unit:'per 1,000 LOC', lowerIsBetter:true},
+  {name:'Test Coverage', baseline:60, target:85, current:60, unit:'%', lowerIsBetter:false},
+  {name:'Critical Bugs Post-Release', baseline:2, target:0, current:2, unit:'per release', lowerIsBetter:true},
+  {name:'Customer Satisfaction', baseline:78, target:90, current:78, unit:'%', lowerIsBetter:false},
+];
+let kpis = load(KPI_KEY, defaultKpis);
+function renderKpis(){
+  const grid = document.getElementById('kpiGrid');
+  grid.innerHTML='';
+  kpis.forEach((k,idx)=>{
+    let pct;
+    if(k.lowerIsBetter){
+      pct = Math.max(0, Math.min(100, ((k.baseline-k.current)/(k.baseline-k.target||1))*100));
+    } else {
+      pct = Math.max(0, Math.min(100, ((k.current-k.baseline)/(k.target-k.baseline||1))*100));
+    }
+    const div = document.createElement('div');
+    div.className='card';
+    div.innerHTML = `
+      <div class="kpi-title">${k.name}</div>
+      <div class="kpi-value">${k.current}${k.unit.includes('%')?'%':''} <span style="font-size:.7rem;opacity:.6;">${k.unit.includes('%')?'':k.unit}</span></div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div style="font-size:.7rem;opacity:.6;margin-top:6px;">Target: ${k.target}${k.unit.includes('%')?'%':' '+k.unit}</div>
+      <input type="number" data-idx="${idx}" class="kpiInput" value="${k.current}" style="margin-top:8px;width:100%;">
+    `;
+    grid.appendChild(div);
+  });
+  document.querySelectorAll('.kpiInput').forEach(inp=>{
+    inp.onchange = (e)=>{
+      const idx = +e.target.dataset.idx;
+      kpis[idx].current = parseFloat(e.target.value)||0;
+      save(KPI_KEY, kpis);
+      renderKpis();
+    };
+  });
+}
+renderKpis();
+
+// ---- Defects ----
+let defects = load(DEFECT_KEY, [
+  {title:'Login button unresponsive on Safari', severity:4, status:'open'},
+  {title:'Typo in settings page', severity:1, status:'closed'},
+]);
+function renderDefects(){
+  const rows = document.getElementById('defectRows');
+  rows.innerHTML='';
+  defects.forEach((d,idx)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${d.title}</td>
+      <td class="sev-${d.severity}">Sev ${d.severity}</td>
+      <td>
+        <select data-idx="${idx}" class="statusSelect status-${d.status}">
+          <option value="open" ${d.status==='open'?'selected':''}>Open</option>
+          <option value="progress" ${d.status==='progress'?'selected':''}>In Progress</option>
+          <option value="closed" ${d.status==='closed'?'selected':''}>Closed</option>
+        </select>
+      </td>
+      <td><button class="danger" data-idx="${idx}">Delete</button></td>
+    `;
+    rows.appendChild(tr);
+  });
+  document.querySelectorAll('.statusSelect').forEach(sel=>{
+    sel.onchange = (e)=>{
+      const idx = +e.target.dataset.idx;
+      defects[idx].status = e.target.value;
+      save(DEFECT_KEY, defects);
+      renderDefects();
+    };
+  });
+  document.querySelectorAll('#defectRows .danger').forEach(btn=>{
+    btn.onclick = (e)=>{
+      const idx = +e.target.dataset.idx;
+      defects.splice(idx,1);
+      save(DEFECT_KEY, defects);
+      renderDefects();
+    };
+  });
+}
+renderDefects();
+document.getElementById('defectForm').onsubmit = (e)=>{
+  e.preventDefault();
+  const title = document.getElementById('dTitle').value.trim();
+  if(!title) return;
+  defects.push({
+    title,
+    severity: +document.getElementById('dSeverity').value,
+    status: document.getElementById('dStatus').value,
+  });
+  save(DEFECT_KEY, defects);
+  document.getElementById('dTitle').value='';
+  renderDefects();
+};
+
+// ---- Checklist ----
+const defaultChecklist = [
+  {text:'Code review checklist completed for all merged PRs', done:false},
+  {text:'CI automated tests passing on main branch', done:false},
+  {text:'FMEA risk review done for new features', done:false},
+  {text:'Monthly process audit scheduled/completed', done:false},
+  {text:'Requirements reviewed and signed off before sprint start', done:false},
+  {text:'Smoke test run on latest build', done:false},
+];
+let checklist = load(CHECK_KEY, defaultChecklist);
+function renderChecklist(){
+  const box = document.getElementById('checklistBox');
+  box.innerHTML='';
+  checklist.forEach((item,idx)=>{
+    const div = document.createElement('div');
+    div.className = 'checklist-item'+(item.done?' done':'');
+    div.innerHTML = `
+      <input type="checkbox" id="chk${idx}" ${item.done?'checked':''}>
+      <label for="chk${idx}">${item.text}</label>
+    `;
+    box.appendChild(div);
+  });
+  document.querySelectorAll('#checklistBox input[type=checkbox]').forEach((cb,idx)=>{
+    cb.onchange = ()=>{
+      checklist[idx].done = cb.checked;
+      save(CHECK_KEY, checklist);
+      renderChecklist();
+    };
+  });
+}
+renderChecklist();
+
+// ---- PDCA ----
+const pdcaStages = ['Plan','Do','Check','Act'];
+let pdcaNotes = load(PDCA_KEY, {Plan:'',Do:'',Check:'',Act:''});
+function renderPdca(){
+  const grid = document.getElementById('pdcaGrid');
+  grid.innerHTML='';
+  pdcaStages.forEach(stage=>{
+    const box = document.createElement('div');
+    box.className='pdca-box';
+    box.innerHTML = `<h3>${stage}</h3><textarea data-stage="${stage}">${pdcaNotes[stage]||''}</textarea>`;
+    grid.appendChild(box);
+  });
+}
+renderPdca();
+document.getElementById('savePdca').onclick = ()=>{
+  document.querySelectorAll('#pdcaGrid textarea').forEach(ta=>{
+    pdcaNotes[ta.dataset.stage] = ta.value;
+  });
+  save(PDCA_KEY, pdcaNotes);
+  const btn = document.getElementById('savePdca');
+  const orig = btn.textContent;
+  btn.textContent = 'Saved ✓';
+  setTimeout(()=>btn.textContent=orig, 1200);
+};
+</script>
+</body>
+</html>
